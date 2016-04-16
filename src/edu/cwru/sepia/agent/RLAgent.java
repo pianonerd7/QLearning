@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -15,6 +16,8 @@ import java.util.Map;
 import java.util.Random;
 
 import edu.cwru.sepia.action.Action;
+import edu.cwru.sepia.action.ActionFeedback;
+import edu.cwru.sepia.action.ActionResult;
 import edu.cwru.sepia.environment.model.history.DamageLog;
 import edu.cwru.sepia.environment.model.history.DeathLog;
 import edu.cwru.sepia.environment.model.history.History;
@@ -185,7 +188,7 @@ public class RLAgent extends Agent {
 	public Map<Integer, Action> middleStep(State.StateView stateView, History.HistoryView historyView) {
 
 		updateBasedOnEvent(stateView, historyView);
-
+		getAvailableFootmen(stateView, historyView, playernum);
 		return null;
 	}
 
@@ -475,13 +478,23 @@ public class RLAgent extends Agent {
 			}
 			eventOccured = false;
 		}
-
 	}
 
-	/**
-	 * 
-	 */
-	private List<Integer> getAvailableFootmen() {
+	private List<Integer> getAvailableFootmen(State.StateView state, History.HistoryView history, int playernum) {
+		ArrayList<Integer> idleFootmenID = new ArrayList<Integer>();
 
+		Map<Integer, ActionResult> actionResults = history.getCommandFeedback(playernum, state.getTurnNumber() - 1);
+
+		if (actionResults.size() == 0) {
+			return this.myFootmen;
+		}
+
+		for (ActionResult action : actionResults.values()) {
+			if (action.getFeedback() == ActionFeedback.COMPLETED) {
+				idleFootmenID.add(action.getAction().getUnitId());
+			}
+		}
+		return idleFootmenID;
 	}
+
 }
