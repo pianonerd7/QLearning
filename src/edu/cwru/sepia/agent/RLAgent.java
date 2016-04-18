@@ -40,6 +40,8 @@ public class RLAgent extends Agent {
 	private List<Integer> enemyFootmen;
 	private HashMap<Integer, Integer> footmenHealth;
 	private HashMap<Integer, Position> footmenLocation;
+	private double curReward;
+	private boolean training = false;
 
 	/**
 	 * Convenience variable specifying enemy agent number. Use this whenever
@@ -210,6 +212,21 @@ public class RLAgent extends Agent {
 
 	}
 
+	private void updateRewards(State.StateView state, History.HistoryView history, HashMap<Integer, Action> actions) {
+
+		for (Integer id : actions.keySet()) {
+			this.curReward = this.curReward + getReward(id, state, history);
+
+			if (!this.training) {
+
+			}
+		}
+	}
+
+	private double getReward(int fID, State.StateView state, History.HistoryView history) {
+		return 0.0;
+	}
+
 	/**
 	 * Calculate the updated weights for this agent.
 	 * 
@@ -229,6 +246,8 @@ public class RLAgent extends Agent {
 	 */
 	public double[] updateWeights(double[] oldWeights, double[] oldFeatures, double totalReward,
 			State.StateView stateView, History.HistoryView historyView, int footmanId) {
+
+		double temp = this.curReward + this.gamma * this.calcQValue();
 		return null;
 	}
 
@@ -290,7 +309,37 @@ public class RLAgent extends Agent {
 	 * @return The current reward
 	 */
 	public double calculateReward(State.StateView stateView, History.HistoryView historyView, int footmanId) {
-		return 0;
+		double reward = -1;
+		int turn = stateView.getTurnNumber();
+
+		if (turn > 0) {
+			for (DamageLog damage : historyView.getDamageLogs(turn - 1)) {
+				if (damage.getDefenderController() == this.playernum) {
+					reward -= damage.getDamage();
+				}
+				if (damage.getDefenderController() == ENEMY_PLAYERNUM) {
+					reward += damage.getDamage();
+				}
+			}
+			for (DeathLog death : historyView.getDeathLogs(turn - 1)) {
+				if (death.getController() == this.playernum) {
+					for (Integer footmenID : this.myFootmen) {
+						if (death.getDeadUnitID() == footmenID) {
+							reward -= 100;
+						}
+					}
+				}
+				if (death.getController() == ENEMY_PLAYERNUM) {
+					for (Integer enemyID : this.enemyFootmen) {
+						if (death.getDeadUnitID() == enemyID) {
+							reward += 100;
+						}
+					}
+				}
+			}
+
+		}
+		return reward;
 	}
 
 	/**
@@ -314,7 +363,20 @@ public class RLAgent extends Agent {
 	 */
 	public double calcQValue(State.StateView stateView, History.HistoryView historyView, int attackerId,
 			int defenderId) {
-		return 0;
+		double[] f = this.calculateFeatureVector(stateView, historyView, attackerId, defenderId);
+		double sum = 0;
+		for (int i = 0; i < f.length; i++) {
+			sum += f[i] * this.weights[i];
+		}
+		return sum;
+	}
+
+	private double calcQValue(double[] features) {
+		double sum = 0;
+		for (int i = 0; i < features.length; i++) {
+			sum += features[i] * this.weights[i];
+		}
+		return sum;
 	}
 
 	/**
@@ -341,7 +403,42 @@ public class RLAgent extends Agent {
 	 */
 	public double[] calculateFeatureVector(State.StateView stateView, History.HistoryView historyView, int attackerId,
 			int defenderId) {
-		return null;
+
+		double[] featureVector = new double[NUM_FEATURES];
+
+		featureVector[0] = 1;
+		featureVector[1] = this.footmenHealth.get(this.enemyFootmen.get(attackerId));
+		featureVector[2] = this.footmenHealth.get(this.myFootmen.get(defenderId));
+		if (this.footmenHealth.get(attackerId) == 0) {
+			featureVector[3] = this.footmenHealth.get(this.myFootmen.get(defenderId)) / 2;
+		} else {
+			featureVector[3] = this.footmenHealth.get(this.myFootmen.get(defenderId))
+					/ this.footmenHealth.get(this.enemyFootmen.get(attackerId));
+		}
+		featureVector[4] = attackerId == optimalEnemyToAttack() ? 0.3 : -0.4;
+		featureVector[5] = isEnemyNextToMe(defenderId, attackerId) ? 0.5 : 0;
+		featureVector[6] = surroundingEnemies(defenderId);
+		return featureVector;
+	}
+
+	private Integer optimalEnemyToAttack() {
+
+	}
+
+	private boolean isEnemyNextToMe(int myFootmenID, int enemyID) {
+		return this.footmenLocation.get(this.myFootmen.get(myFootmenID))
+				.isAdjacent(this.footmenLocation.get(this.enemyFootmen.get(enemyID)));
+	}
+
+	private int surroundingEnemies(int myFootmenID) {
+		int count = 0;
+		for (Integer enemyID : this.enemyFootmen) {
+			if (this.footmenLocation.get(this.myFootmen.get(myFootmenID))
+					.isAdjacent(this.footmenLocation.get(this.enemyFootmen.get(enemyID)))) {
+				count++;
+			}
+		}
+		return count;
 	}
 
 	/**
@@ -497,4 +594,28 @@ public class RLAgent extends Agent {
 		return idleFootmenID;
 	}
 
+	/**
+	 * Pick the best enemy to attack 1-epsilon time, and epsilon time we pick a
+	 * random enemy.
+	 * 
+	 * @param myFootmen
+	 * @return
+	 */
+	private Map<Integer, Action> assignAction(List<Integer> myFootmen) {
+
+		for (Integer footmenID : myFootmen) {
+			boolean getRandom = (random.nextDouble() >= (1 - this.epsilon));
+
+			if (getRandom) {
+				// get random enemy
+			} else {
+				int optimalEnemyID = this.enemyFootmen.get(0);
+				double optimalQVal = Double.NEGATIVE_INFINITY;
+				
+				for (Integer enemy : this.enemyFootmen) {
+					double[] f = this.calculateFeatureVector(stateView, historyView, attackerId, defenderId)
+				}
+			}
+		}
+	}
 }
