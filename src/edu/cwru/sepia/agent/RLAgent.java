@@ -45,6 +45,8 @@ public class RLAgent extends Agent {
 	private int episodeCount = 0;
 	private boolean eventOccured = true;
 	private double curReward = 0;
+	private int curEpisode = 0;
+	private List<Double> meanR;
 
 	/**
 	 * Convenience variable specifying enemy agent number. Use this whenever
@@ -56,7 +58,7 @@ public class RLAgent extends Agent {
 	/**
 	 * Set this to whatever size your feature vector is.
 	 */
-	public static final int NUM_FEATURES = 5;
+	public static final int NUM_FEATURES = 7;
 
 	/**
 	 * Use this random number generator for your epsilon exploration. When you
@@ -110,6 +112,7 @@ public class RLAgent extends Agent {
 		this.footmenHealth = new HashMap<Integer, Integer>();
 		this.footmenLocation = new HashMap<Integer, Position>();
 		this.staleQValue = new HashMap<Integer, Double>();
+		this.meanR = new ArrayList<Double>();
 	}
 
 	/**
@@ -123,6 +126,10 @@ public class RLAgent extends Agent {
 		// learning episode
 		this.isExploitating = (this.episodeCount % 10) > 2;
 
+		if (!this.isExploitating) {
+			// if (this.average)
+		}
+
 		// Find all of your units
 		myFootmen = new LinkedList<>();
 		for (Integer unitId : stateView.getUnitIds(playernum)) {
@@ -134,6 +141,7 @@ public class RLAgent extends Agent {
 				this.footmenHealth.put(unitId, stateView.getUnit(unitId).getHP());
 				this.footmenLocation.put(unitId, new Position(stateView.getUnit(unitId).getXPosition(),
 						stateView.getUnit(unitId).getYPosition()));
+				this.staleQValue.put(unitId, random.nextDouble());
 			} else {
 				System.err.println("Unknown unit type: " + unitName);
 			}
@@ -250,10 +258,6 @@ public class RLAgent extends Agent {
 		// Save your weights
 		saveWeights(weights);
 
-	}
-
-	private double getReward(int fID, State.StateView state, History.HistoryView history) {
-		return 0.0;
 	}
 
 	/**
@@ -421,11 +425,13 @@ public class RLAgent extends Agent {
 		featureVector[1] = this.footmenHealth.get(attackerId);
 		featureVector[2] = this.footmenHealth.get(defenderId);
 		if (this.footmenHealth.get(attackerId) == 0) {
-			featureVector[3] = this.footmenHealth.get(defenderId) / 2;
+			featureVector[3] = this.footmenHealth.get(defenderId) / .5d;
 		} else {
 			featureVector[3] = this.footmenHealth.get(defenderId) / this.footmenHealth.get(attackerId);
 		}
-		featureVector[4] = attackerId == optimalEnemyToAttack(stateView, historyView, attackerId) ? 0.3 : -0.4;
+		 featureVector[4] += attackerId == optimalEnemyToAttack(stateView,
+		 historyView, attackerId) ? 0.3 : -0.4;
+		featureVector[4] = 0;
 		featureVector[5] = isEnemyNextToMe(defenderId, attackerId) ? 0.5 : 0;
 		featureVector[6] = surroundingEnemies(defenderId);
 		return featureVector;
@@ -447,15 +453,15 @@ public class RLAgent extends Agent {
 	}
 
 	private boolean isEnemyNextToMe(int myFootmenID, int enemyID) {
-		return this.footmenLocation.get(this.myFootmen.get(myFootmenID))
-				.isAdjacent(this.footmenLocation.get(this.enemyFootmen.get(enemyID)));
+		return this.footmenLocation.get(myFootmenID).isAdjacent(this.footmenLocation.get(enemyID));
 	}
 
 	private int surroundingEnemies(int myFootmenID) {
 		int count = 0;
 		for (Integer enemyID : this.enemyFootmen) {
-			if (this.footmenLocation.get(this.myFootmen.get(myFootmenID))
-					.isAdjacent(this.footmenLocation.get(this.enemyFootmen.get(enemyID)))) {
+			Position p1 = this.footmenLocation.get(myFootmenID);
+			Position p2 = this.footmenLocation.get(enemyID);
+			if (this.footmenLocation.get(myFootmenID).isAdjacent(this.footmenLocation.get(enemyID))) {
 				count++;
 			}
 		}
