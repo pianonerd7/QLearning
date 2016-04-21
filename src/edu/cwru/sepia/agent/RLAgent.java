@@ -47,6 +47,8 @@ public class RLAgent extends Agent {
 	private double curReward = 0;
 	private int curEpisode = 0;
 	private List<Double> meanR;
+	private int gamesWon = 0;
+	private int gamesLost = 0;
 
 	/**
 	 * Convenience variable specifying enemy agent number. Use this whenever
@@ -58,7 +60,7 @@ public class RLAgent extends Agent {
 	/**
 	 * Set this to whatever size your feature vector is.
 	 */
-	public static final int NUM_FEATURES = 7;
+	public static final int NUM_FEATURES = 6;
 
 	/**
 	 * Use this random number generator for your epsilon exploration. When you
@@ -85,7 +87,8 @@ public class RLAgent extends Agent {
 		super(playernum);
 
 		if (args.length >= 1) {
-			numEpisodes = Integer.parseInt(args[0]);
+			// numEpisodes = Integer.parseInt(args[0]);
+			numEpisodes = 2001;
 			System.out.println("Running " + numEpisodes + " episodes.");
 		} else {
 			numEpisodes = 10;
@@ -254,10 +257,24 @@ public class RLAgent extends Agent {
 	public void terminalStep(State.StateView stateView, History.HistoryView historyView) {
 
 		// MAKE SURE YOU CALL printTestData after you finish a test episode.
+		updateBasedOnEvent(stateView, historyView);
+		if (this.myFootmen.size() == 0) {
+			System.out.println(this.curEpisode + " I LOST");
+			this.gamesLost++;
+		} else {
+			System.out.println(this.curEpisode + " I WON");
+			this.gamesWon++;
+		}
 
+		this.curEpisode++;
+		if (this.curEpisode == this.numEpisodes) {
+			printTestData(this.meanR);
+			this.saveWeights(weights);
+			System.out.println("games won: " + this.gamesWon);
+			System.exit(0);
+		}
 		// Save your weights
 		saveWeights(weights);
-
 	}
 
 	/**
@@ -429,11 +446,8 @@ public class RLAgent extends Agent {
 		} else {
 			featureVector[3] = this.footmenHealth.get(defenderId) / this.footmenHealth.get(attackerId);
 		}
-		 featureVector[4] += attackerId == optimalEnemyToAttack(stateView,
-		 historyView, attackerId) ? 0.3 : -0.4;
-		featureVector[4] = 0;
-		featureVector[5] = isEnemyNextToMe(defenderId, attackerId) ? 0.5 : 0;
-		featureVector[6] = surroundingEnemies(defenderId);
+		featureVector[4] = isEnemyNextToMe(defenderId, attackerId) ? 0.5 : 0;
+		featureVector[5] = surroundingEnemies(defenderId);
 		return featureVector;
 	}
 
