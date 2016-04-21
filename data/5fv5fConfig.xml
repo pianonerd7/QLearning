@@ -36,7 +36,7 @@
 	</ModelParameters>
 	<Runner>
 		<RunnerClass>edu.cwru.sepia.experiment.SimpleModelEpisodicRunner</RunnerClass>
-		<Parameter Name="experiment.NumEpisodes" Value="1000"/>
+		<Parameter Name="experiment.NumEpisodes" Value="30000"/>
 		<Parameter Name="experiment.EpisodesPerSave" Value="1"/>
 		<Parameter Name="experiment.SaveAgents" Value="false"/>
 		<Parameter Name="experiment.episodesperagentsave" Value="4" />

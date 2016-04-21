@@ -87,8 +87,7 @@ public class RLAgent extends Agent {
 		super(playernum);
 
 		if (args.length >= 1) {
-			// numEpisodes = Integer.parseInt(args[0]);
-			numEpisodes = 2001;
+			numEpisodes = Integer.parseInt(args[0]);
 			System.out.println("Running " + numEpisodes + " episodes.");
 		} else {
 			numEpisodes = 10;
@@ -127,11 +126,7 @@ public class RLAgent extends Agent {
 
 		// You will need to add code to check if you are in a testing or
 		// learning episode
-		this.isExploitating = (this.episodeCount % 10) > 2;
-
-		if (!this.isExploitating) {
-			// if (this.average)
-		}
+		this.isExploitating = (this.curEpisode % 10) > 2;
 
 		// Find all of your units
 		myFootmen = new LinkedList<>();
@@ -259,20 +254,20 @@ public class RLAgent extends Agent {
 		// MAKE SURE YOU CALL printTestData after you finish a test episode.
 		updateBasedOnEvent(stateView, historyView);
 		if (this.myFootmen.size() == 0) {
-			System.out.println(this.curEpisode + " I LOST");
+			System.out.println(this.curEpisode + " I LOST, game won: " + this.gamesWon);
 			this.gamesLost++;
 		} else {
-			System.out.println(this.curEpisode + " I WON");
+			System.out.println(this.curEpisode + " I WON, game won: " + this.gamesWon);
 			this.gamesWon++;
 		}
 
 		this.curEpisode++;
-		if (this.curEpisode == this.numEpisodes) {
-			printTestData(this.meanR);
-			this.saveWeights(weights);
-			System.out.println("games won: " + this.gamesWon);
-			System.exit(0);
-		}
+		// if (this.curEpisode == this.numEpisodes) {
+		// // printTestData(this.meanR);
+		// this.saveWeights(weights);
+		// System.out.println("games won: " + this.gamesWon);
+		// // System.exit(0);
+		// }
 		// Save your weights
 		saveWeights(weights);
 	}
