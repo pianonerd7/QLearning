@@ -277,9 +277,11 @@ public class RLAgent extends Agent {
 		// MAKE SURE YOU CALL printTestData after you finish a test episode.
 		updateBasedOnEvent(stateView, historyView);
 		if (this.myFootmen.size() == 0) {
-			System.out.println(this.curEpisode + " I LOST, game won: " + this.gamesWon);
+			// System.out.println(this.curEpisode + " I LOST, game won: " +
+			// this.gamesWon);
 		} else {
-			System.out.println(this.curEpisode + " I WON, game won: " + this.gamesWon);
+			// System.out.println(this.curEpisode + " I WON, game won: " +
+			// this.gamesWon);
 			this.gamesWon++;
 		}
 
@@ -291,8 +293,8 @@ public class RLAgent extends Agent {
 
 		this.curEpisode++;
 		if (this.curEpisode == this.numEpisodes) {
-			printTestData(this.meanR);
 			this.saveWeights(weights);
+			printTestData(this.meanR);
 			System.out.println("games won: " + this.gamesWon);
 			System.exit(0);
 		}
@@ -472,7 +474,7 @@ public class RLAgent extends Agent {
 
 	private Integer optimalEnemyToAttack(State.StateView state, History.HistoryView history, int attackerId) {
 		int optimalEnemyID = this.enemyFootmen.get(0);
-		double optimalQVal = Double.MIN_VALUE;
+		double optimalQVal = Double.NEGATIVE_INFINITY;
 
 		for (Integer enemy : this.enemyFootmen) {
 			double qVal = this.calcQValue(this.calculateFeatureVector(state, history, attackerId, enemy));
