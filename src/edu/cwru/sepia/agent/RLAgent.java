@@ -47,6 +47,7 @@ public class RLAgent extends Agent {
 	private int curEpisode = 0;
 	private List<Double> meanR;
 	private int gamesWon = 0;
+	private int qLearningSet = 0;
 
 	/**
 	 * Convenience variable specifying enemy agent number. Use this whenever
@@ -124,7 +125,7 @@ public class RLAgent extends Agent {
 
 		// You will need to add code to check if you are in a testing or
 		// learning episode
-		this.isExploitating = (this.curEpisode % 10) > 2;
+		exploitationCheck();
 
 		// Find all of your units
 		myFootmen = new LinkedList<>();
@@ -277,24 +278,31 @@ public class RLAgent extends Agent {
 		// MAKE SURE YOU CALL printTestData after you finish a test episode.
 		updateBasedOnEvent(stateView, historyView);
 		if (this.myFootmen.size() == 0) {
-			// System.out.println(this.curEpisode + " I LOST, game won: " +
-			// this.gamesWon);
+			System.out.println(this.curEpisode + " I LOST, game won: " + this.gamesWon);
 		} else {
-			// System.out.println(this.curEpisode + " I WON, game won: " +
-			// this.gamesWon);
+			System.out.println(this.curEpisode + " I WON, game won: " + this.gamesWon);
 			this.gamesWon++;
 		}
 
-		if (this.curEpisode == 0) {
-			this.meanR.add(this.curEpisode, this.curReward);
+		if (this.curEpisode % 10 == 0) {
+			this.meanR.set(this.qLearningSet,
+					this.meanR.get(this.qLearningSet) + (this.curReward - this.meanR.get(this.qLearningSet)));
 		} else {
-			this.meanR.add(this.curEpisode, (this.meanR.get(this.curEpisode - 1) + this.curReward) / this.curEpisode);
+			this.meanR.set(this.qLearningSet, this.meanR.get(this.qLearningSet)
+					+ (this.curReward - this.meanR.get(this.qLearningSet)) / this.curEpisode % 10);
 		}
 
 		this.curEpisode++;
+
+		if (this.curEpisode % 10 == 0) {
+			this.qLearningSet++;
+		}
+
 		if (this.curEpisode == this.numEpisodes) {
 			this.saveWeights(weights);
 			printTestData(this.meanR);
+			saveTestData(this.meanR);
+			count(this.meanR);
 			System.out.println("games won: " + this.gamesWon);
 			System.exit(0);
 		}
@@ -525,6 +533,47 @@ public class RLAgent extends Agent {
 		System.out.println("");
 	}
 
+	public void saveTestData(List<Double> averageRewards) {
+		File path = new File("average_reward/averageReward.txt");
+		path.getAbsoluteFile().getParentFile().mkdirs();
+
+		try {
+			BufferedWriter writer = new BufferedWriter(new FileWriter(path, false));
+
+			writer.write("");
+			writer.write("Average Cumulative Reward \n");
+			writer.write("------------------------- \n");
+
+			for (int i = 0; i < averageRewards.size(); i++) {
+				String averageReward = String.format("%.2f", averageRewards.get(i));
+				writer.write(averageReward + "\n");
+			}
+			writer.flush();
+			writer.close();
+		} catch (IOException ex) {
+			System.err.println("Failed to write weights to file. Reason: " + ex.getMessage());
+		}
+	}
+
+	public void count(List<Double> averageRewards) {
+		File path = new File("average_reward/count.txt");
+		path.getAbsoluteFile().getParentFile().mkdirs();
+
+		try {
+			// open a new file writer. Set append to false
+			BufferedWriter writer = new BufferedWriter(new FileWriter(path, false));
+
+			for (int i = 0; i < averageRewards.size(); i++) {
+				String gamesPlayed = Integer.toString(10 * i);
+				writer.write(gamesPlayed + "\n");
+			}
+			writer.flush();
+			writer.close();
+		} catch (IOException ex) {
+			System.err.println("Failed to write weights to file. Reason: " + ex.getMessage());
+		}
+	}
+
 	/**
 	 * DO NOT CHANGE THIS!
 	 *
@@ -598,6 +647,16 @@ public class RLAgent extends Agent {
 	@Override
 	public void loadPlayerData(InputStream inputStream) {
 
+	}
+
+	private void exploitationCheck() {
+		this.isExploitating = (this.curEpisode % 10) > 5;
+
+		if (!this.isExploitating) {
+			if (this.meanR.size() <= this.qLearningSet) {
+				this.meanR.add(this.qLearningSet, new Double(0));
+			}
+		}
 	}
 
 	private void updateBasedOnEvent(State.StateView state, History.HistoryView history) {
